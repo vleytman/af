@@ -1,0 +1,6 @@
+/.idea/
+/.github/
+/node_modules/
+package-lock.json
+rollup.config.mjs
+.DS_Store
