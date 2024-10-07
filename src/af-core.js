@@ -104,6 +104,7 @@ const Parser = {
   },
 
   getAnimatableElementsByPreset () {
+    if (!AF.Config.presets) return []
     return Object.entries(AF.Config.presets).flatMap(([presetName, preset]) => {
       const className = `${AF.Config.prefix}${utils.kebabCase(presetName)}`
       return [...document.getElementsByClassName(className)].map(element => {
@@ -121,6 +122,7 @@ const Parser = {
         parsedElements.push(this.parseSingleElement(element))
       } catch {
         debug.error(`Can't parse element:`, element)
+        return parsedElements
       }
     })
     parsedElements = this.propagateBreakpoints(parsedElements)
