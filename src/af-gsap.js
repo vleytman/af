@@ -66,14 +66,14 @@ class AFEngineGSAP {
     this.timelines = timelines
   }
 
-  init (settings, config) {
+  init (config) {
     AF.Config = config
-    if (!settings?.plugins?.gsap && !window.gsap) {
+    if (!AF.Config?.plugins?.gsap && !window.gsap) {
       AF.debug.error('GSAP core not found')
       return
     }
-    this.gsap = settings?.plugins?.gsap || window.gsap
-    this.plugins = settings?.plugins || {}
+    this.gsap = AF.Config?.plugins?.gsap || window.gsap
+    this.plugins = AF.Config?.plugins || {}
     this.loadRequiredPlugins(this.elements)
     this.initScrollSmoother()
     this.matchMedia = this.gsap.matchMedia()
@@ -93,10 +93,14 @@ class AFEngineGSAP {
 
   animate () {
     if (!this.timelines) return
-    this.cleanup()
     for (const [bp, timelines] of Object.entries(this.timelines)) {
       this.matchMedia.add(AF.Config.breakpoints[bp], (context) => {
         for (let [tlName, tl] of Object.entries(timelines)) {
+          // Check if this timeline has already been initialized
+          if (this.isTimelineInitialized(tlName, bp)) {
+            continue
+          }
+          // Initialize the timeline
           tl = this.prepareTimeline(tl)
           const options = { ...this.getScrollTrigger(tl, tl?.scrollElement) }
           const tlInstance = this.gsap.timeline({ ...tl.options, ...options })
@@ -114,6 +118,46 @@ class AFEngineGSAP {
     this.handlePageShow()
     this.handleLoad()
     this.refresh()
+  }
+
+  update (newElements, newTimelines) {
+    this.elements = [...this.elements, ...newElements]
+    for (const [bp, timelines] of Object.entries(newTimelines)) {
+      if (!this.timelines[bp]) {
+        this.timelines[bp] = timelines
+      } else {
+        Object.assign(this.timelines[bp], timelines)
+      }
+    }
+    this.animateNewElements(newElements, newTimelines)
+  }
+
+  animateNewElements (elements, timelines) {
+    if (!timelines) return
+    for (const [bp, bpTimelines] of Object.entries(timelines)) {
+      this.matchMedia.add(AF.Config.breakpoints[bp], (context) => {
+        for (let [tlName, tl] of Object.entries(bpTimelines)) {
+          if (this.isTimelineInitialized(tlName, bp)) {
+            continue
+          }
+          tl = this.prepareTimeline(tl)
+          const options = { ...this.getScrollTrigger(tl, tl?.scrollElement) }
+          const tlInstance = this.gsap.timeline({ ...tl.options, ...options })
+          if (tl.pause) tlInstance.pause()
+          this.gsapTimelines.push({ name: tlName, breakpoint: bp, timeline: tlInstance })
+          for (const animation of tl.animations) {
+            const animationInstance = this.createSingleAnimation(animation, bp)
+            tlInstance.add(animationInstance, animation.attributes?.timeline?.position ?? 0)
+          }
+        }
+        this.setupEventActions(bp, context)
+      })
+    }
+    this.refresh()
+  }
+
+  isTimelineInitialized (tlName, breakpoint) {
+    return this.gsapTimelines.some(tl => tl.name === tlName && tl.breakpoint === breakpoint)
   }
 
   setupEventActions (breakpoint, context) {
@@ -238,13 +282,20 @@ class AFEngineGSAP {
   }
 
   cleanup () {
-    this.plugins.ScrollTrigger && this.plugins.ScrollTrigger.killAll()
-    if (this.gsapTimelines) {
-      this.gsapTimelines.forEach(({ timeline }) => timeline.kill())
-      this.gsapTimelines = []
-    }
+    this.gsapTimelines = this.gsapTimelines.filter(({ timeline, name, breakpoint }) => {
+      const timelineExists = this.elements.some(elData => {
+        return elData.attributes.timeline?.[breakpoint]?.name === name
+      })
+      if (!timelineExists) {
+        timeline.kill()
+        return false
+      }
+      return true
+    })
   }
 
 }
 
-export default AFEngineGSAP
+AF.registerEngine('gsap', AFEngineGSAP)
+
+export default AF

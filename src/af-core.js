@@ -21,6 +21,10 @@ const debug = {
 
 const utils = {
 
+  hasAnimationAttributes (element) {
+    return Array.from(element.attributes).some(attr => attr.name.startsWith(AF.Config.prefix))
+  },
+
   deepMergeObjects (target, source) {
     if (Array.isArray(target) && Array.isArray(source)) {
       return source.slice()
@@ -526,26 +530,70 @@ const AF = {
   Parser,
   Config,
   engines: {},
+  engineInstance: null,
 
   registerEngine (name, engineClass, plugins) {
     AF.engines[name] = {}
     AF.engines[name].engineClass = engineClass
-    AF.engines[name].plugins = plugins
   },
 
   init (config = null) {
     if (!AF.engines) return
     if (config) AF.utils.mergeConfig(config)
+    this.observeDOM()
+    this.initAnimations()
+  },
+
+  initAnimations () {
     const elements = Parser.parseElements()
+    elements.forEach(elementData => {
+      elementData.element.setAttribute('data-af-processed', 'true')
+    })
     const timelines = Parser.getTimelines(elements)
     const EngineClass = AF.engines[Config.engine].engineClass
     if (!EngineClass) {
       this.debug.error(`Incorrect animation engine: ${AF.Config.engine}`)
       return
     }
-    const animationEngine = new EngineClass(elements, timelines)
-    if (animationEngine.init && typeof animationEngine.init === 'function') {
-      animationEngine.init(AF.engines[Config.engine], AF.Config)
+    if (!this.engineInstance) {
+      this.engineInstance = new EngineClass(elements, timelines)
+      if (this.engineInstance.init && typeof this.engineInstance.init === 'function') {
+        this.engineInstance.init(AF.Config)
+      }
+    } else {
+      this.engineInstance.update(elements, timelines)
+    }
+  },
+
+  observeDOM () {
+    const observer = new MutationObserver((mutationsList) => {
+      let nodesAdded = false
+      for (const mutation of mutationsList) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          nodesAdded = true
+          break
+        }
+      }
+      if (nodesAdded) this.render()
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+  },
+
+  render () {
+    const elements = Parser.getAnimatableElements().filter(element => !element.hasAttribute('data-af-processed'))
+    if (elements.length === 0) return
+    elements.forEach(element => {
+      element.setAttribute('data-af-processed', 'true')
+    })
+    const parsedElements = Parser.processAttributes(elements)
+    const timelines = Parser.getTimelines(parsedElements)
+    if (this.engineInstance) {
+      this.engineInstance.update(parsedElements, timelines)
+    } else {
+      this.engineInstance = new (AF.engines[AF.Config.engine].engineClass)(parsedElements, timelines)
+      if (this.engineInstance.init && typeof this.engineInstance.init === 'function') {
+        this.engineInstance.init(AF.Config)
+      }
     }
   },
 

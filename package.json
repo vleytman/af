@@ -1,11 +1,15 @@
 {
   "name": "@vleytman/af",
-  "version": "1.0.11",
-  "description": "Small animation framework to create GSAP and other animations with HTML attributes",
-  "main": "dist/af-core.umd.js",
-  "module": "dist/af-core.esm.js",
+  "version": "1.0.13",
+  "description": "Small animation framework to create animations with HTML attributes",
+  "main": "dist/af-gsap.umd.js",
+  "module": "dist/af-gsap.esm.js",
   "exports": {
     ".": {
+      "import": "./dist/af-gsap.esm.js",
+      "require": "./dist/af-gsap.umd.js"
+    },
+    "./core": {
       "import": "./dist/af-core.esm.js",
       "require": "./dist/af-core.umd.js"
     },
@@ -17,35 +21,26 @@
   "files": [
     "dist"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
     "prepublishOnly": "npm run build"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/vleytman/af.git"
-  },
   "keywords": [
     "animation",
-    "gsap"
+    "gsap",
+    "animejs"
   ],
   "author": "Vasiliy Leytman",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/vleytman/af/issues"
+  "dependencies": {},
+  "peerDependencies": {
+    "gsap": "^3.0.0",
+    "animejs": "^3.0.0"
   },
-  "homepage": "https://af.1wp.dev/",
   "devDependencies": {
-    "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-commonjs": "^23.0.0",
     "@rollup/plugin-node-resolve": "^15.0.0",
     "@rollup/plugin-terser": "^0.3.0",
     "rollup": "^3.0.0"
-  },
-  "peerDependencies": {
-    "gsap": "^3.0.0"
   }
 }
