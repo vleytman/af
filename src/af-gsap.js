@@ -90,7 +90,7 @@ class AFEngineGSAP {
     this.cleanupContexts()
     this.contexts = []
     for (const [bp, timelines] of Object.entries(this.timelines)) {
-      const context = this.matchMedia.add(AF.Config.breakpoints[bp], () => {
+      const context = this.matchMedia.add(AF.Config.breakpoints[bp], (ctx) => {
         for (let [tlName, tl] of Object.entries(timelines)) {
           tl = this.prepareTimeline(tl)
           const options = { ...this.getScrollTrigger(tl, tl?.scrollElement) }
@@ -102,10 +102,10 @@ class AFEngineGSAP {
             tlInstance.add(animationInstance, animation.attributes?.timeline?.position ?? 0)
           })
         }
+        this.setupEventActions(bp, ctx) // Using 'ctx' instead of 'context'
         this.plugins.ScrollTrigger?.refresh()
       })
       this.contexts.push(context)
-      this.setupEventActions(bp, context)
     }
     this.handleResize()
     this.handlePageShow()
