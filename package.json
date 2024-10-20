@@ -1,6 +1,6 @@
 {
   "name": "@vleytman/af",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Small animation framework to create animations with HTML attributes",
   "main": "dist/af-gsap.umd.js",
   "module": "dist/af-gsap.esm.js",
