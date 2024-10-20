@@ -545,7 +545,6 @@ const AF = {
     }
     const animationEngine = new EngineClass(elements, timelines)
     if (animationEngine.init && typeof animationEngine.init === 'function') {
-      console.debug('AF.Config(x)', AF.Config, config)
       animationEngine.init(AF.Config)
     }
   },
